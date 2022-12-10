@@ -1,24 +1,31 @@
 version: '3.9'
 
 services:
-  node-exporter:
-    image: quay.io/prometheus/node-exporter:latest
+
+  prometheus:
+    image: prom/prometheus:v2.36.2
     volumes:
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /:/rootfs:ro
-      - /:/host:ro,rslave
-    command: 
-      - '--path.rootfs=/host'
-      - '--path.procfs=/host/proc' 
-      - '--path.sysfs=/host/sys'
-      - --collector.filesystem.ignored-mount-points
-      - "^/(sys|proc|dev|host|etc|rootfs/var/lib/docker/containers|rootfs/var/lib/docker/overlay2|rootfs/run/docker/netns|rootfs/var/lib/docker/aufs)($$|/)"
+      - ./prometheus/:/etc/prometheus/
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
     ports:
-      - 9100:9100
+      - 9090:9090
     restart: always
-    deploy:
-      mode: global
+
+  node_exporter:
+      image: quay.io/prometheus/node-exporter:latest
+      container_name: node_exporter
+      command:
+        - '--path.rootfs=/host'
+      ports:
+      - 9100:9100
+      restart: unless-stopped
+      volumes:
+        - '/:/host:ro,rslave'
 
   grafana:
     image: grafana/grafana
@@ -31,15 +38,14 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=grafana
     volumes:
       - ./grafana:/etc/grafana/provisioning/datasources
-
-  prometheus:
-    image: prom/prometheus:v2.30.3
-    ports:
-      - 9000:9090
-    volumes:
-      - ./prometheus:/etc/prometheus
-      - prometheus-data:/prometheus
-    command: --web.enable-lifecycle  --config.file=/etc/prometheus/prometheus.yml
-
+    
+  petshop_sflabs:
+      image: harbor.sflabs.com.br/processo/petshop:latest
+      restart: always
+      
 volumes:
-  prometheus-data:
+    prometheus_data:
+
+networks:
+  frontend:
+  backend:

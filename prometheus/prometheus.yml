@@ -11,4 +11,5 @@ scrape_configs:
     static_configs:
       - targets:
           - 'prometheus:9090'
-          - 'idonotexists:564'
+          - 'node_exporter:9100'
+          - 'petshop_sflabs:3000'
